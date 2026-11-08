@@ -1,4 +1,5 @@
 """Parser on HTML mirroring the live portal."""
+import re
 from datetime import date
 
 from fixtures import CAL, GRADES, INBOX, parser as p
@@ -73,6 +74,22 @@ def test_message_body():
     assert p.parse_message_body(MESSAGE_PAGE) == (
         "Szanowni Państwo,\nw piątek klasa 3A idzie do MOK-u.\nZbiórka o 8:00."
     )
+
+
+# Shape of the real poczta_czytaj.php fragment (anonymised).
+PORTAL_MESSAGE = """\ufeff <table style="width: 890px;" class="new_border"> <tr class="table_header"> <td >Wycieczka </td> </tr>
+<tr class="panel_tresc"> <td > <table width="100%" border="0"> <tr> <th style="height:35px;"> <div style="text-align: left;">
+<a href="poczta_odpowiedz.php?od=1&imie=Anna&nazwisko=&typ=o&id=1" class="btn_odp"><strong>Odpowiedź</strong></a> &nbsp;&nbsp; </div> <!-- --> </th> </tr>
+<tr> <td> <div class="tresc_listy" style="overflow: auto; border: 1px solid #000; width: 850px; ">Dzień dobry,<br>w piątek <div><b>wycieczka</b></div>do muzeum.<br/>&nbsp;</div> </td> </tr> </table> </td> </tr> </table>"""
+
+
+def test_portal_message_body():
+    assert p.parse_message_body(PORTAL_MESSAGE) == "Dzień dobry,\nw piątek wycieczka\ndo muzeum."
+
+
+def test_portal_message_without_text_is_empty():
+    empty = re.sub(r'(class="tresc_listy"[^>]*>).*?(</div> </td>)', r"\1 \2", PORTAL_MESSAGE, flags=re.S)
+    assert p.parse_message_body(empty) == ""
 
 
 def test_empty_message_page_is_layout_error():

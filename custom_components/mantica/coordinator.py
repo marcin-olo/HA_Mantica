@@ -86,7 +86,6 @@ class ManticaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._new_msgs: set[str] = set()
         self._dismissed: set[str] = set()
         self._bodies: dict[str, str] = {}
-        self._raw_logged = False
 
     async def async_load(self) -> None:
         stored = await self._store.async_load() or {}
@@ -190,15 +189,6 @@ class ManticaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             fetched += 1
             try:
                 html = await self.client.fetch_message_html(m["url"])
-                if not self._raw_logged:
-                    # Temporary: the message page markup has not been seen
-                    # yet; this shows it once per start to tune the parser.
-                    self._raw_logged = True
-                    _LOGGER.warning(
-                        "Message page sample (id %s): %r",
-                        m["id"],
-                        parser._WS_RE.sub(" ", html).strip()[:6000],
-                    )
                 self._bodies[m["id"]] = parser.parse_message_body(html)
             except (ManticaError, parser.LayoutError) as err:
                 # The rest of the data is fine; try again on the next update.

@@ -321,28 +321,53 @@ _MSG_HEADER_RE = re.compile(
 )
 
 
-def parse_message_body(html: str) -> str:
-    """Readable text of a poczta_czytaj.php page/fragment.
+_MSG_BODY_OPEN_RE = re.compile(r"<div\b[^>]*\bclass=[\"']?[^\"'>]*\btresc_listy\b[^>]*>", re.I)
+_DIV_TAG_RE = re.compile(r"<(/?)div\b[^>]*>", re.I)
 
-    The exact markup of this page has not been seen yet, so this is a
-    generic text extraction: line breaks kept, header lines (Temat:, Od:,
-    Data:, ...) dropped, since those are already in the inbox list.
-    """
-    html = _clean(html)
-    body = re.search(r"<body\b[^>]*>(.*)</body>", html, re.S | re.I)
-    html = body.group(1) if body else html
+
+def _message_div(html: str) -> str | None:
+    """Inner HTML of <div class="tresc_listy"> (the message text), or None."""
+    start = _MSG_BODY_OPEN_RE.search(html)
+    if not start:
+        return None
+    depth = 1
+    for tag in _DIV_TAG_RE.finditer(html, start.end()):
+        depth += -1 if tag.group(1) else 1
+        if depth == 0:
+            return html[start.end():tag.start()]
+    return html[start.end():]
+
+
+def _html_to_text(html: str) -> str:
+    """Readable text: line breaks kept, header lines (Temat:, Od:, ...) dropped."""
     html = re.sub(r"<(form|select|button|input|textarea)\b.*?(?:</\1\s*>|>)", " ", html, flags=re.S | re.I)
     html = _BLOCK_END_RE.sub("\n", html)
     text = htmllib.unescape(_TAG_RE.sub(" ", html))
     lines: list[str] = []
     for line in text.splitlines():
-        line = re.sub(r"[ \t ]+", " ", line).strip()
+        line = re.sub(r"[ \t\u00a0\ufeff]+", " ", line).strip()
         if not line or _MSG_HEADER_RE.match(line):
             if lines and lines[-1]:
                 lines.append("")
             continue
         lines.append(line)
-    out = "\n".join(lines).strip()
+    return "\n".join(lines).strip()
+
+
+def parse_message_body(html: str) -> str:
+    """Readable text of a poczta_czytaj.php page/fragment.
+
+    The portal returns a fragment with the subject in tr.table_header, a
+    "Odpowiedź" link and the text in <div class="tresc_listy"> (empty when
+    the message has no text, which is valid). Without that div, fall back
+    to generic text extraction of the whole page.
+    """
+    html = _clean(html)
+    inner = _message_div(html)
+    if inner is not None:
+        return _html_to_text(inner)
+    body = re.search(r"<body\b[^>]*>(.*)</body>", html, re.S | re.I)
+    out = _html_to_text(body.group(1) if body else html)
     if not out:
         raise LayoutError("message page has no text")
     return out
