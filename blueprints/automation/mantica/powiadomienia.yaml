@@ -1,0 +1,127 @@
+blueprint:
+  name: Dziennik Mantica - powiadomienia
+  description: >-
+    Powiadomienie w aplikacji Home Assistant o nowej ocenie, nowej wiadomości
+    (z treścią) i nowym wpisie w terminarzu. Wymaga integracji „Mantica -
+    dziennik szkolny”.
+  domain: automation
+  source_url: https://github.com/OWNER/REPO/blob/main/blueprints/automation/mantica/powiadomienia.yaml
+  input:
+    notify_device:
+      name: Urządzenie
+      description: Telefon/tablet z aplikacją Home Assistant.
+      selector:
+        device:
+          filter:
+            integration: mobile_app
+    notify_grades:
+      name: Nowe oceny
+      default: true
+      selector:
+        boolean:
+    notify_messages:
+      name: Nowe wiadomości
+      default: true
+      selector:
+        boolean:
+    notify_calendar:
+      name: Nowe wpisy w terminarzu
+      default: true
+      selector:
+        boolean:
+    max_body:
+      name: Długość treści wiadomości
+      description: Ile znaków treści wiadomości pokazać w powiadomieniu.
+      default: 600
+      selector:
+        number:
+          min: 0
+          max: 2000
+          step: 50
+          mode: box
+
+mode: queued
+max: 20
+
+triggers:
+  - trigger: event
+    event_type: mantica_new_grade
+    id: grade
+  - trigger: event
+    event_type: mantica_new_message
+    id: message
+  - trigger: event
+    event_type: mantica_new_calendar_event
+    id: calendar
+  - trigger: event
+    event_type: mantica_bulk_update
+    id: bulk
+
+variables:
+  send_grades: !input notify_grades
+  send_messages: !input notify_messages
+  send_calendar: !input notify_calendar
+  max_body: !input max_body
+  d: "{{ trigger.event.data }}"
+
+actions:
+  - choose:
+      - conditions: "{{ trigger.id == 'grade' and send_grades }}"
+        sequence:
+          - domain: mobile_app
+            type: notify
+            device_id: !input notify_device
+            title: "Nowa ocena: {{ d.subject }}"
+            message: >-
+              {{ d.value }}{% if d.weight %} (waga {{ d.weight }}){% endif %}
+              {%- if d.description %} – {{ d.description }}{% endif %}
+              {%- if d.teacher %}
+
+              {{ d.teacher }}, {{ d.date }}{% endif %}
+            data:
+              group: mantica-oceny
+      - conditions: "{{ trigger.id == 'message' and send_messages }}"
+        sequence:
+          - domain: mobile_app
+            type: notify
+            device_id: !input notify_device
+            title: "Wiadomość od: {{ d.sender }}"
+            message: >-
+              {{ d.subject }}
+              {%- if d.body and max_body | int > 0 %}
+
+              {{ d.body[:max_body | int] }}{% if d.body | length > max_body | int %}…{% endif %}{% endif %}
+            data:
+              group: mantica-wiadomosci
+      - conditions: "{{ trigger.id == 'calendar' and send_calendar }}"
+        sequence:
+          - domain: mobile_app
+            type: notify
+            device_id: !input notify_device
+            title: >-
+              {{ 'Sprawdzian' if d.is_test else 'Terminarz' }}: {{ d.name }}
+            message: >-
+              {{ d.date }}{% if d.days_left == 0 %} (dziś){% elif d.days_left == 1 %} (jutro){% else %} (za {{ d.days_left }} dni){% endif %}
+              {%- if d.description %}
+
+              {{ d.description }}{% endif %}
+              {%- if d.teacher %}
+
+              {{ d.teacher }}{% endif %}
+            data:
+              group: mantica-terminarz
+      - conditions: >-
+          {{ trigger.id == 'bulk' and (
+               (d.type == 'grades' and send_grades) or
+               (d.type == 'messages' and send_messages) or
+               (d.type == 'events' and send_calendar)) }}
+        sequence:
+          - domain: mobile_app
+            type: notify
+            device_id: !input notify_device
+            title: Dziennik Mantica
+            message: >-
+              {{ d.count }} nowych pozycji naraz ({{ {'grades': 'oceny', 'messages': 'wiadomości', 'events': 'terminarz'}.get(d.type, d.type) }})
+              – sprawdź dziennik.
+            data:
+              group: mantica

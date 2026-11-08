@@ -1,0 +1,90 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Mantica school diary",
+        "description": "Enter the school diary address and the parent/guardian login and password.",
+        "data": {
+          "host": "Diary URL (e.g. https://school.mantica.net)",
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in again",
+        "description": "The diary rejected the login several times in a row. Enter the current password. If it has not changed, the login page may have changed.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid username or password",
+      "cannot_connect": "Cannot connect to the diary"
+    },
+    "abort": {
+      "already_configured": "This account is already configured",
+      "reauth_successful": "Password updated"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "unread_messages": {
+        "name": "Unread messages"
+      },
+      "last_message": {
+        "name": "Latest message"
+      },
+      "last_grade": {
+        "name": "Latest grade"
+      },
+      "recent_grades": {
+        "name": "Grades in the last 14 days"
+      },
+      "next_event": {
+        "name": "Next event"
+      },
+      "next_test": {
+        "name": "Next test"
+      },
+      "upcoming_events": {
+        "name": "Upcoming events"
+      }
+    },
+    "button": {
+      "mark_messages_read": {
+        "name": "Mark messages as read"
+      }
+    }
+  },
+  "issues": {
+    "layout_changed": {
+      "title": "Mantica diary: page layout changed",
+      "description": "Login works, but the page structure is not recognised: {details}\n\nEntities are unavailable to avoid showing wrong data. parser.py needs an update."
+    },
+    "site_unreachable": {
+      "title": "Mantica diary: unreachable for a while",
+      "description": "The last {count} attempts failed: {details}\n\nPossibly maintenance, a network issue or a site change. The integration keeps retrying; this disappears after the next successful update."
+    },
+    "unknown_message_icon": {
+      "title": "Mantica diary: unknown message state",
+      "description": "Read/unread state not recognised (unknown icon): {details}\n\nThese messages are not counted as unread. parser.py needs the icon added."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "When to read the diary",
+        "description": "The integration logs in every given number of minutes, only within the given hours (HA local time). Outside them it does not connect at all; the first morning read is at the start hour.",
+        "data": {
+          "scan_minutes": "Every N minutes (min. 15)",
+          "active_from": "From hour (0-23)",
+          "active_to": "Until hour (1-24)"
+        }
+      }
+    },
+    "error": {
+      "bad_hours": "The end hour must be later than the start hour."
+    }
+  }
+}

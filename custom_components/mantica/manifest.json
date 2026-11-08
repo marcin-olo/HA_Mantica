@@ -1,0 +1,9 @@
+{
+  "domain": "mantica",
+  "name": "Mantica - dziennik szkolny",
+  "codeowners": [],
+  "config_flow": true,
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "version": "0.4.0"
+}

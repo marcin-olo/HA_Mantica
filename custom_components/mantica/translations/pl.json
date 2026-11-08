@@ -1,0 +1,90 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Dziennik Mantica",
+        "description": "Podaj adres dziennika szkoły oraz login i hasło rodzica/opiekuna.",
+        "data": {
+          "host": "Adres dziennika (np. https://szkola.mantica.net)",
+          "username": "Login",
+          "password": "Hasło"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Zaloguj ponownie",
+        "description": "Dziennik kilka razy z rzędu odrzucił logowanie. Podaj aktualne hasło. Jeśli hasło się nie zmieniło, mogła się zmienić strona logowania.",
+        "data": {
+          "password": "Hasło"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Nieprawidłowy login lub hasło",
+      "cannot_connect": "Nie można połączyć się z dziennikiem"
+    },
+    "abort": {
+      "already_configured": "To konto jest już skonfigurowane",
+      "reauth_successful": "Hasło zaktualizowane"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "unread_messages": {
+        "name": "Nieprzeczytane wiadomości"
+      },
+      "last_message": {
+        "name": "Ostatnia wiadomość"
+      },
+      "last_grade": {
+        "name": "Ostatnia ocena"
+      },
+      "recent_grades": {
+        "name": "Oceny z ostatnich 14 dni"
+      },
+      "next_event": {
+        "name": "Najbliższe wydarzenie"
+      },
+      "next_test": {
+        "name": "Najbliższy sprawdzian"
+      },
+      "upcoming_events": {
+        "name": "Nadchodzące wydarzenia"
+      }
+    },
+    "button": {
+      "mark_messages_read": {
+        "name": "Oznacz wiadomości jako przeczytane"
+      }
+    }
+  },
+  "issues": {
+    "layout_changed": {
+      "title": "Dziennik Mantica: zmienił się układ strony",
+      "description": "Integracja loguje się poprawnie, ale nie rozpoznaje struktury strony: {details}\n\nEncje są niedostępne, żeby nie pokazywać błędnych danych. Trzeba poprawić plik parser.py."
+    },
+    "site_unreachable": {
+      "title": "Dziennik Mantica: brak dostępu od dłuższego czasu",
+      "description": "Ostatnie {count} prób pobrania danych się nie powiodło: {details}\n\nTo może być przerwa techniczna, problem z siecią albo zmiana strony. Integracja ponawia próby sama i ten komunikat zniknie po pierwszym udanym odczycie."
+    },
+    "unknown_message_icon": {
+      "title": "Dziennik Mantica: nierozpoznany stan wiadomości",
+      "description": "Nie wiadomo, czy te wiadomości są przeczytane (nieznana ikona): {details}\n\nNie są wliczane do licznika nieprzeczytanych. Trzeba dopisać ikonę w parser.py."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kiedy czytać dziennik",
+        "description": "Integracja loguje się do dziennika co podany czas, tylko w podanych godzinach (czas lokalny HA). Poza nimi nie łączy się wcale; pierwszy odczyt rano jest o pełnej godzinie startu.",
+        "data": {
+          "scan_minutes": "Co ile minut (min. 15)",
+          "active_from": "Od godziny (0-23)",
+          "active_to": "Do godziny (1-24)"
+        }
+      }
+    },
+    "error": {
+      "bad_hours": "Godzina końca musi być późniejsza niż godzina początku."
+    }
+  }
+}
