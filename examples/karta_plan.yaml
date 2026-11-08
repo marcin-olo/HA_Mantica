@@ -1,0 +1,27 @@
+# Karta "Plan tygodnia" (pon-pt; od soboty pokazuje następny tydzień).
+# Dni wolne z kalendarza roku szkolnego, 🔁 = zastępstwo (kto zastępuje).
+# Dashboard -> Edytuj -> Dodaj kartę -> Ręcznie -> wklej.
+type: markdown
+title: "Plan lekcji: Ewa"
+content: |-
+  {%- set e = 'sensor.integracje_dziennik_mantica_week_plan' -%}
+  {%- set days = state_attr(e, 'days') or [] -%}
+  {%- set slots = state_attr(e, 'slots') or [] -%}
+  {%- set short = {'poniedziałek':'Pon','wtorek':'Wt','środa':'Śr','czwartek':'Czw','piątek':'Pt'} -%}
+  | Lekcja |{% for d in days %} {{ short.get(d.weekday, d.weekday) }} {{ d.date[8:10] }}.{{ d.date[5:7] }} |{% endfor %}
+  |:--|{% for d in days %}:--|{% endfor %}
+  {% for s in slots -%}
+  {%- set ns = namespace(cells=[], any=false) -%}
+  {%- for d in days -%}
+  {%- if d.day_off -%}
+  {%- set ns.cells = ns.cells + ['🎉 _' ~ d.day_off ~ '_' if s == slots[0] else ''] -%}
+  {%- else -%}
+  {%- set l = d.lessons | selectattr('number', 'eq', s.number) | list -%}
+  {%- if l -%}{%- set ns.any = true -%}{%- endif -%}
+  {%- set ns.cells = ns.cells + [(('**' ~ l[0].subject ~ '**' ~ ('<br>🔁 ' ~ l[0].substitute if l[0].substitute is defined else '')) if l else '')] -%}
+  {%- endif -%}
+  {%- endfor -%}
+  {%- if ns.any -%}
+  | **{{ s.number }}**<br><small>{{ s.start }}–{{ s.end }}</small> | {{ ns.cells | join(' | ') }} |
+  {% endif -%}
+  {%- endfor %}
