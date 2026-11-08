@@ -55,6 +55,9 @@ CALENDAR_FIELDS = ("name", "date", "days_left", "teacher", "description", "added
 # Message bodies fetched per update, so a full inbox does not mean 10
 # extra requests at once.
 MAX_BODY_FETCHES = 5
+# Bump when parse_message_body changes, so bodies stored by an older
+# parser are fetched and parsed again.
+BODY_FORMAT = 2
 
 
 class ManticaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -95,7 +98,8 @@ class ManticaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._seen["events"] = set(stored["events"])
         self._new_msgs = set(stored.get("new_messages", ()))
         self._dismissed = set(stored.get("dismissed_messages", ()))
-        self._bodies = dict(stored.get("bodies", {}))
+        if stored.get("body_format") == BODY_FORMAT:
+            self._bodies = dict(stored.get("bodies", {}))
         # Grade IDs changed format in 0.2.0 -> re-seed silently instead of
         # announcing every existing grade as new.
         if stored.get("id_format") == ID_FORMAT and "grades" in stored:
@@ -225,6 +229,7 @@ class ManticaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "events": sorted(self._seen["events"] or ()),
                 "new_messages": sorted(self._new_msgs),
                 "dismissed_messages": sorted(self._dismissed),
+                "body_format": BODY_FORMAT,
                 "bodies": self._bodies,
             },
             10,
