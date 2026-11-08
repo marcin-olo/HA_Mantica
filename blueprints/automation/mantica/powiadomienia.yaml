@@ -2,7 +2,8 @@ blueprint:
   name: Dziennik Mantica - powiadomienia
   description: >-
     Powiadomienie w aplikacji Home Assistant o nowej ocenie, nowej wiadomości
-    (z treścią) i nowym wpisie w terminarzu. Wymaga integracji „Mantica -
+    (z treścią), nowym wpisie w terminarzu, zastępstwie, uwadze i zadaniu
+    domowym. Wymaga integracji „Mantica -
     dziennik szkolny”.
   domain: automation
   source_url: https://github.com/marcin-olo/HA_Mantica/blob/main/blueprints/automation/mantica/powiadomienia.yaml
@@ -26,6 +27,22 @@ blueprint:
         boolean:
     notify_calendar:
       name: Nowe wpisy w terminarzu
+      default: true
+      selector:
+        boolean:
+    notify_substitutions:
+      name: Nowe zastępstwa
+      description: Tylko zastępstwa na dziś i kolejne dni.
+      default: true
+      selector:
+        boolean:
+    notify_remarks:
+      name: Nowe uwagi
+      default: true
+      selector:
+        boolean:
+    notify_homework:
+      name: Nowe zadania domowe
       default: true
       selector:
         boolean:
@@ -54,6 +71,15 @@ triggers:
     event_type: mantica_new_calendar_event
     id: calendar
   - trigger: event
+    event_type: mantica_new_substitution
+    id: substitution
+  - trigger: event
+    event_type: mantica_new_remark
+    id: remark
+  - trigger: event
+    event_type: mantica_new_homework
+    id: homework
+  - trigger: event
     event_type: mantica_bulk_update
     id: bulk
 
@@ -61,6 +87,9 @@ variables:
   send_grades: !input notify_grades
   send_messages: !input notify_messages
   send_calendar: !input notify_calendar
+  send_substitutions: !input notify_substitutions
+  send_remarks: !input notify_remarks
+  send_homework: !input notify_homework
   max_body: !input max_body
   d: "{{ trigger.event.data }}"
 
@@ -110,18 +139,57 @@ actions:
               {{ d.teacher }}{% endif %}
             data:
               group: mantica-terminarz
+      - conditions: "{{ trigger.id == 'substitution' and send_substitutions }}"
+        sequence:
+          - domain: mobile_app
+            type: notify
+            device_id: !input notify_device
+            title: "Zastępstwo: {{ d.subject }}"
+            message: >-
+              {{ d.date }}, lekcja {{ d.lesson }}: {{ d.substitute }} za {{ d.absent_teacher }}
+            data:
+              group: mantica-zastepstwa
+      - conditions: "{{ trigger.id == 'remark' and send_remarks }}"
+        sequence:
+          - domain: mobile_app
+            type: notify
+            device_id: !input notify_device
+            title: >-
+              {{ {'positive': 'Uwaga pozytywna', 'negative': 'Uwaga negatywna'}.get(d.kind, 'Uwaga') }}
+            message: >-
+              {{ d.text }}
+
+              {{ d.teacher }}, {{ d.date }}
+            data:
+              group: mantica-uwagi
+      - conditions: "{{ trigger.id == 'homework' and send_homework }}"
+        sequence:
+          - domain: mobile_app
+            type: notify
+            device_id: !input notify_device
+            title: "Zadanie domowe: {{ d.subject }}"
+            message: >-
+              Na {{ d.due }}{% if d.topic %} – {{ d.topic }}{% endif %}
+              {%- if d.content %}
+
+              {{ d.content[:max_body | int] if max_body | int > 0 else d.content }}{% endif %}
+            data:
+              group: mantica-zadania
       - conditions: >-
           {{ trigger.id == 'bulk' and (
                (d.type == 'grades' and send_grades) or
                (d.type == 'messages' and send_messages) or
-               (d.type == 'events' and send_calendar)) }}
+               (d.type == 'events' and send_calendar) or
+               (d.type == 'substitutions' and send_substitutions) or
+               (d.type == 'remarks' and send_remarks) or
+               (d.type == 'homework' and send_homework)) }}
         sequence:
           - domain: mobile_app
             type: notify
             device_id: !input notify_device
             title: Dziennik Mantica
             message: >-
-              {{ d.count }} nowych pozycji naraz ({{ {'grades': 'oceny', 'messages': 'wiadomości', 'events': 'terminarz'}.get(d.type, d.type) }})
+              {{ d.count }} nowych pozycji naraz ({{ {'grades': 'oceny', 'messages': 'wiadomości', 'events': 'terminarz', 'substitutions': 'zastępstwa', 'remarks': 'uwagi', 'homework': 'zadania domowe'}.get(d.type, d.type) }})
               – sprawdź dziennik.
             data:
               group: mantica

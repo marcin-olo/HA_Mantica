@@ -3,10 +3,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import date, timedelta
 from typing import Any
 
 from homeassistant.components.sensor import (
     SensorEntity,
+    SensorDeviceClass,
     SensorEntityDescription,
     SensorStateClass,
 )
@@ -14,8 +16,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
-from . import ManticaConfigEntry
+from . import ManticaConfigEntry, extras
 from .const import DOMAIN
 from .coordinator import ManticaCoordinator
 
@@ -57,6 +60,46 @@ def _event_attrs(e: dict[str, Any] | None) -> dict[str, Any]:
 class ManticaDescription(SensorEntityDescription):
     value_fn: Callable[[dict[str, Any]], Any]
     attrs_fn: Callable[[dict[str, Any]], dict[str, Any]] = lambda d: {}
+    # Data key of an extra page; the sensor is unavailable when it failed.
+    section: str | None = None
+
+
+def _today() -> date:
+    return dt_util.now().date()
+
+
+def _plan(d: dict[str, Any], offset: int) -> dict[str, Any]:
+    return extras.day_plan(
+        d["timetable"], d["school_calendar"] or [], d["substitutions"] or [], _today() + timedelta(days=offset)
+    )
+
+
+def _plan_attrs(plan: dict[str, Any]) -> dict[str, Any]:
+    lessons = plan["lessons"]
+    return {
+        "date": plan["date"],
+        "weekday": plan["weekday"],
+        "day_off": plan["day_off"],
+        "start": lessons[0]["start"] if lessons else None,
+        "end": lessons[-1]["end"] if lessons else None,
+        "substitutions": sum(1 for lesson in lessons if "substitute" in lesson),
+        "lessons": lessons,
+    }
+
+
+def _upcoming_subs(d: dict[str, Any]) -> list[dict[str, Any]]:
+    today = _today().isoformat()
+    return sorted((s for s in d["substitutions"] if s["date"] >= today), key=lambda s: (s["date"], s["lesson"]))
+
+
+def _open_homework(d: dict[str, Any]) -> list[dict[str, Any]]:
+    today = _today().isoformat()
+    return [h for h in d["homework"] if h["due"] >= today]
+
+
+SUB_KEYS = ("date", "lesson", "subject", "absent_teacher", "substitute", "added")
+REMARK_KEYS = ("kind", "text", "date", "teacher")
+HOMEWORK_KEYS = ("subject", "topic", "assigned", "due", "content", "teacher")
 
 
 SENSORS: tuple[ManticaDescription, ...] = (
@@ -111,6 +154,85 @@ SENSORS: tuple[ManticaDescription, ...] = (
         attrs_fn=lambda d: _event_attrs(d["next_test"]),
     ),
     ManticaDescription(
+        key="lessons_today",
+        translation_key="lessons_today",
+        icon="mdi:timetable",
+        section="timetable",
+        value_fn=lambda d: len(_plan(d, 0)["lessons"]),
+        attrs_fn=lambda d: _plan_attrs(_plan(d, 0)),
+    ),
+    ManticaDescription(
+        key="lessons_tomorrow",
+        translation_key="lessons_tomorrow",
+        icon="mdi:calendar-arrow-right",
+        section="timetable",
+        value_fn=lambda d: len(_plan(d, 1)["lessons"]),
+        attrs_fn=lambda d: _plan_attrs(_plan(d, 1)),
+    ),
+    ManticaDescription(
+        key="week_plan",
+        translation_key="week_plan",
+        icon="mdi:calendar-week",
+        section="timetable",
+        value_fn=lambda d: extras.week_plans(
+            d["timetable"], d["school_calendar"] or [], d["substitutions"] or [], _today()
+        )[0]["date"],
+        attrs_fn=lambda d: {
+            "valid_from": d["timetable"]["valid_from"],
+            "valid_to": d["timetable"]["valid_to"],
+            "slots": d["timetable"]["slots"],
+            "days": extras.week_plans(
+                d["timetable"], d["school_calendar"] or [], d["substitutions"] or [], _today()
+            ),
+        },
+    ),
+    ManticaDescription(
+        key="next_day_off",
+        translation_key="next_day_off",
+        icon="mdi:beach",
+        device_class=SensorDeviceClass.DATE,
+        section="school_calendar",
+        value_fn=lambda d: (
+            date.fromisoformat(n["start"]) if (n := extras.next_day_off(d["school_calendar"], _today())) else None
+        ),
+        attrs_fn=lambda d: {
+            k: v
+            for k, v in (extras.next_day_off(d["school_calendar"], _today()) or {}).items()
+            if k in ("name", "end", "days_left")
+        },
+    ),
+    ManticaDescription(
+        key="substitutions",
+        translation_key="substitutions",
+        icon="mdi:account-switch",
+        section="substitutions",
+        value_fn=lambda d: len(_upcoming_subs(d)),
+        attrs_fn=lambda d: {
+            "upcoming": [_pick(s, SUB_KEYS, 100) for s in _upcoming_subs(d)[:20]],
+            "latest": [_pick(s, SUB_KEYS, 100) for s in d["substitutions"][:5]],
+        },
+    ),
+    ManticaDescription(
+        key="remarks",
+        translation_key="remarks",
+        icon="mdi:comment-alert",
+        section="remarks",
+        value_fn=lambda d: len(d["remarks"]),
+        attrs_fn=lambda d: {
+            "positive": sum(1 for r in d["remarks"] if r["kind"] == "positive"),
+            "negative": sum(1 for r in d["remarks"] if r["kind"] == "negative"),
+            "remarks": [_pick(r, REMARK_KEYS, 300) for r in d["remarks"][:20]],
+        },
+    ),
+    ManticaDescription(
+        key="homework",
+        translation_key="homework",
+        icon="mdi:notebook-edit",
+        section="homework",
+        value_fn=lambda d: len(_open_homework(d)),
+        attrs_fn=lambda d: {"homework": [_pick(h, HOMEWORK_KEYS, 500) for h in _open_homework(d)[:15]]},
+    ),
+    ManticaDescription(
         key="upcoming_events",
         translation_key="upcoming_events",
         icon="mdi:calendar-month",
@@ -151,6 +273,11 @@ class ManticaSensor(CoordinatorEntity[ManticaCoordinator], SensorEntity):
         self.entity_description = description
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
         self._attr_device_info = _device(entry)
+
+    @property
+    def available(self) -> bool:
+        section = self.entity_description.section
+        return super().available and (section is None or self.coordinator.data.get(section) is not None)
 
     @property
     def native_value(self) -> Any:

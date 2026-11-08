@@ -3,3 +3,6 @@ __pycache__/
 .DS_Store
 .vscode/
 .claude/
+
+# Raw portal pages with real data - never commit
+samples/

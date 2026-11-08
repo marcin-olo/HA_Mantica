@@ -9,14 +9,14 @@ from urllib.parse import urlparse
 
 import aiohttp
 
-from . import parser
+from . import extras, parser
 
 _LOGGER = logging.getLogger(__name__)
 TIMEOUT = aiohttp.ClientTimeout(total=30)
 CALENDAR_MONTHS = 3  # current + next two
 # Identify honestly, so the portal admins can tell what this traffic is.
 USER_AGENT = (
-    "HomeAssistant-Mantica/0.4 "
+    "HomeAssistant-Mantica/0.5 "
     "(unofficial Home Assistant integration; parent account, read-only; "
     "+https://github.com/marcin-olo/HA_Mantica)"
 )
@@ -72,6 +72,9 @@ class ManticaClient:
         self._username = username
         self._password = password
         self._lock_obj: asyncio.Lock | None = None
+        # Timetable and school-year calendar change rarely: read once a day.
+        self._static_day: date | None = None
+        self._static: dict[str, Any] = {}
 
     @property
     def _lock(self) -> asyncio.Lock:
@@ -153,9 +156,10 @@ class ManticaClient:
         return text
 
     async def fetch_all(self, today: date) -> dict[str, Any]:
+        sem = semester_for(today)
         async with self._lock:
             pages: list[tuple[str, str, int, int]] = []
-            grades_html = await self._get("oceny_uczen.php", {"semestr": semester_for(today)})
+            grades_html = await self._get("oceny_uczen.php", {"semestr": sem})
             inbox_html = await self._get("poczta_new.php", {"message": "inbox"})
             year, month = today.year, today.month
             for _ in range(CALENDAR_MONTHS):
@@ -166,6 +170,15 @@ class ManticaClient:
                 month += 1
                 if month > 12:
                     month, year = 1, year + 1
+            # Extra pages: a layout problem there must not hide grades and
+            # messages, so they are parsed separately below.
+            extra_html: dict[str, str] = {}
+            if self._static_day != today:
+                extra_html["timetable"] = await self._get("plan_lekcji_uczen.php")
+                extra_html["school_calendar"] = await self._get("kalendarz_info.php")
+            extra_html["substitutions"] = await self._get("p_zastepstwa_new_u.php")
+            extra_html["remarks"] = await self._get("uwagi_uczen.php", {"semestr": sem})
+            extra_html["homework"] = await self._get("zadania_domowe_info.php")
         try:
             subjects = parser.parse_grades(grades_html)
         except parser.LayoutError as err:
@@ -180,4 +193,32 @@ class ManticaClient:
                 events += parser.parse_calendar(html, y, m)
             except parser.LayoutError as err:
                 raise ManticaLayoutError(f"Terminarz {m:02d}/{y}: {err}") from err
-        return parser.build_summary(subjects, messages, events, today)
+        data = parser.build_summary(subjects, messages, events, today)
+        data.update(self._parse_extras(extra_html, today))
+        return data
+
+    def _parse_extras(self, pages: dict[str, str], today: date) -> dict[str, Any]:
+        """Parsed extra sections; a section that failed is None and its
+        error is listed in "extra_errors"."""
+        out: dict[str, Any] = {}
+        errors: list[str] = []
+        for key, label, fn in (
+            ("timetable", "Plan lekcji", extras.parse_timetable),
+            ("school_calendar", "Kalendarz roku", extras.parse_school_calendar),
+            ("substitutions", "Zastępstwa", extras.parse_substitutions),
+            ("remarks", "Uwagi", extras.parse_remarks),
+            ("homework", "Zadania domowe", extras.parse_homework),
+        ):
+            if key not in pages:
+                out[key] = self._static.get(key)  # read earlier today
+                continue
+            try:
+                out[key] = fn(pages[key])
+            except parser.LayoutError as err:
+                out[key] = None
+                errors.append(f"{label}: {err}")
+        if "timetable" in pages and out["timetable"] is not None and out["school_calendar"] is not None:
+            self._static = {"timetable": out["timetable"], "school_calendar": out["school_calendar"]}
+            self._static_day = today
+        out["extra_errors"] = errors
+        return out

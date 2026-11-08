@@ -49,11 +49,37 @@
       },
       "upcoming_events": {
         "name": "Nadchodzące wydarzenia"
+      },
+      "lessons_today": {
+        "name": "Lekcje dziś"
+      },
+      "lessons_tomorrow": {
+        "name": "Lekcje jutro"
+      },
+      "week_plan": {
+        "name": "Plan tygodnia"
+      },
+      "next_day_off": {
+        "name": "Następny dzień wolny"
+      },
+      "substitutions": {
+        "name": "Zastępstwa"
+      },
+      "remarks": {
+        "name": "Uwagi"
+      },
+      "homework": {
+        "name": "Zadania domowe"
       }
     },
     "button": {
       "mark_messages_read": {
         "name": "Oznacz wiadomości jako przeczytane"
+      }
+    },
+    "calendar": {
+      "lessons": {
+        "name": "Lekcje"
       }
     }
   },
@@ -69,6 +95,10 @@
     "unknown_message_icon": {
       "title": "Dziennik Mantica: nierozpoznany stan wiadomości",
       "description": "Nie wiadomo, czy te wiadomości są przeczytane (nieznana ikona): {details}\n\nNie są wliczane do licznika nieprzeczytanych. Trzeba dopisać ikonę w parser.py."
+    },
+    "extra_layout_changed": {
+      "title": "Dziennik Mantica: nie udało się odczytać części dziennika",
+      "description": "Oceny i wiadomości działają, ale tych stron nie udało się odczytać: {details}\n\nEncje z nich są niedostępne. Prawdopodobnie zmienił się układ strony - trzeba poprawić extras.py."
     }
   },
   "options": {

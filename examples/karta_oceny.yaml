@@ -1,0 +1,17 @@
+  # Karta "Oceny" - wszystkie oceny bieżące i średnie (tylko wbudowane karty HA).
+  # Dashboard -> Edytuj -> Dodaj kartę -> Ręcznie -> wklej.
+  # Waga oceny pokazana jako mała liczba (×2, ×3...), waga 1 bez oznaczenia.
+  type: markdown
+  title: "Oceny: Ewa"
+  content: |-
+    | Przedmiot | Oceny bieżące | Średnia |
+    |:--|:--|--:|
+    {% for s in states.sensor
+         if s.entity_id.startswith('sensor.integracje_dziennik_mantica_srednia_') -%}
+    {%- set ns = namespace(g=[]) -%}
+    {%- for x in s.attributes.grades or [] -%}
+    {%- set w = (x.weight or '1') | string -%}
+    {%- set ns.g = ns.g + ['**' ~ x.value ~ '**' ~ ('' if w in ['1', ''] else '<sub>×' ~ w ~ '</sub>')] -%}
+    {%- endfor -%}
+    | {{ s.attributes.friendly_name.split(' - ')[-1] }} | {{ ns.g | join(' · ') if ns.g else '–' }} | {{ s.state if s.state not in ['unknown', 'unavailable'] else '–' }} |
+    {% endfor %}

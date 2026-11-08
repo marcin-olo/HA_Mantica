@@ -3,15 +3,16 @@ from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME, Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.event import async_track_time_change
 
 from .api import ManticaClient, new_session
-from .const import DOMAIN, ISSUE_ICON, ISSUE_LAYOUT, ISSUE_UNREACHABLE
+from .const import DOMAIN, ISSUE_EXTRA, ISSUE_ICON, ISSUE_LAYOUT, ISSUE_UNREACHABLE
 from .coordinator import ManticaCoordinator
 from .policy import FailurePolicy
 
-PLATFORMS = [Platform.BUTTON, Platform.SENSOR]
+PLATFORMS = [Platform.BUTTON, Platform.CALENDAR, Platform.SENSOR]
 
 type ManticaConfigEntry = ConfigEntry[ManticaCoordinator]
 
@@ -38,6 +39,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ManticaConfigEntry) -> b
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
+
+    @callback
+    def _new_day(_now) -> None:
+        # "Today"/"tomorrow" sensors move on at midnight, without a portal read.
+        if coordinator.data:
+            coordinator.async_update_listeners()
+
+    entry.async_on_unload(async_track_time_change(hass, _new_day, hour=0, minute=0, second=5))
     return True
 
 
@@ -54,5 +63,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ManticaConfigEntry) -> 
 
 async def async_remove_entry(hass: HomeAssistant, entry: ManticaConfigEntry) -> None:
     hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
-    for issue in (ISSUE_LAYOUT, ISSUE_UNREACHABLE, ISSUE_ICON):
+    for issue in (ISSUE_LAYOUT, ISSUE_UNREACHABLE, ISSUE_ICON, ISSUE_EXTRA):
         ir.async_delete_issue(hass, DOMAIN, f"{issue}_{entry.entry_id}")

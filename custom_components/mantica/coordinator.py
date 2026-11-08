@@ -26,7 +26,11 @@ from .const import (
     EVENT_BULK,
     EVENT_NEW_CALENDAR,
     EVENT_NEW_GRADE,
+    EVENT_NEW_HOMEWORK,
     EVENT_NEW_MESSAGE,
+    EVENT_NEW_REMARK,
+    EVENT_NEW_SUBSTITUTION,
+    ISSUE_EXTRA,
     ISSUE_ICON,
     ISSUE_LAYOUT,
     ISSUE_UNREACHABLE,
@@ -52,6 +56,11 @@ _LOGGER = logging.getLogger(__name__)
 GRADE_FIELDS = ("subject", "value", "date", "description", "weight", "teacher")
 MESSAGE_FIELDS = ("id", "subject", "sender", "received", "unread", "body")
 CALENDAR_FIELDS = ("name", "date", "days_left", "teacher", "description", "added", "is_test")
+SUBSTITUTION_FIELDS = ("date", "lesson", "subject", "absent_teacher", "substitute")
+REMARK_FIELDS = ("kind", "text", "date", "teacher")
+HOMEWORK_FIELDS = ("subject", "topic", "due", "content", "teacher")
+# Extra sections with "new item" events; None = page not read (layout problem).
+EXTRA_KINDS = ("substitutions", "remarks", "homework")
 # Message bodies fetched per update, so a full inbox does not mean 10
 # extra requests at once.
 MAX_BODY_FETCHES = 5
@@ -83,6 +92,7 @@ class ManticaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "grades": None,
             "messages": None,
             "events": None,
+            **{k: None for k in EXTRA_KINDS},
         }
         # Opening a message marks it read on the portal, so "new" is tracked
         # here: ids seen unread on the portal, until marked read in HA.
@@ -94,8 +104,9 @@ class ManticaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         stored = await self._store.async_load() or {}
         if "messages" in stored:
             self._seen["messages"] = set(stored["messages"])
-        if "events" in stored:
-            self._seen["events"] = set(stored["events"])
+        for kind in ("events", *EXTRA_KINDS):
+            if kind in stored:
+                self._seen[kind] = set(stored[kind])
         self._new_msgs = set(stored.get("new_messages", ()))
         self._dismissed = set(stored.get("dismissed_messages", ()))
         if stored.get("body_format") == BODY_FORMAT:
@@ -167,6 +178,11 @@ class ManticaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
         else:
             self._clear(ISSUE_ICON)
+        if data["extra_errors"]:
+            # Grades and messages still work; only the failed section is missing.
+            self._issue(ISSUE_EXTRA, ir.IssueSeverity.WARNING, details="; ".join(data["extra_errors"]))
+        else:
+            self._clear(ISSUE_EXTRA)
         await self._update_messages(data)
         self._detect_new(data)
         return data
@@ -227,6 +243,7 @@ class ManticaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "grades": sorted(self._seen["grades"] or ()),
                 "messages": sorted(self._seen["messages"] or ()),
                 "events": sorted(self._seen["events"] or ()),
+                **{k: sorted(self._seen[k]) for k in EXTRA_KINDS if self._seen[k] is not None},
                 "new_messages": sorted(self._new_msgs),
                 "dismissed_messages": sorted(self._dismissed),
                 "body_format": BODY_FORMAT,
@@ -238,7 +255,7 @@ class ManticaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _detect_new(self, data: dict[str, Any]) -> None:
         changed = False
         today = dt_util.now().date().isoformat()
-        for kind, items, candidates, event, fields in (
+        sources = [
             ("grades", data["grades"], data["grades"], EVENT_NEW_GRADE, GRADE_FIELDS),
             ("messages", data["messages"], data["messages"], EVENT_NEW_MESSAGE, MESSAGE_FIELDS),
             (
@@ -248,7 +265,21 @@ class ManticaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 EVENT_NEW_CALENDAR,
                 CALENDAR_FIELDS,
             ),
-        ):
+        ]
+        if data["substitutions"] is not None:
+            # Past substitutions (and late corrections of them) are not news.
+            subs = data["substitutions"]
+            sources.append(
+                ("substitutions", subs, [s for s in subs if s["date"] >= today],
+                 EVENT_NEW_SUBSTITUTION, SUBSTITUTION_FIELDS)
+            )
+        if data["remarks"] is not None:
+            sources.append(("remarks", data["remarks"], data["remarks"], EVENT_NEW_REMARK, REMARK_FIELDS))
+        if data["homework"] is not None:
+            sources.append(
+                ("homework", data["homework"], data["homework"], EVENT_NEW_HOMEWORK, HOMEWORK_FIELDS)
+            )
+        for kind, items, candidates, event, fields in sources:
             new, bulk = find_new(candidates, self._seen[kind])
             if bulk:
                 _LOGGER.warning(

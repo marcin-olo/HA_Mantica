@@ -108,3 +108,49 @@ def cal_for(month_name: str) -> str:
         '<table class="terminarz"><tr><th><b>' + month_name + "</b></th></tr>"
         "<tr><td>1</td><td>2</td></tr></table>"
     )
+
+
+extras = importlib.import_module("mantica.extras")
+
+_HEAD = '<table class="new_border"><tr class="table_header"> <td >{} </td> </tr><tr class="panel_tresc"><td>'
+
+TIMETABLE = _HEAD.format("Plan lekcji") + """
+<center>Plan obowiązuje od: <b>2026-09-01</b> do: <b>2027-06-25</b></center> <br>
+<table style="width:100%; " class="TableFrekwencja" cellspacing="0" onMouseOut="javascript:highlightTableRowVersionA(0);" >
+<th style="width: 115px">Lekcja</th> <th >Poniedziałek<br></th> <th >Wtorek<br></th> <th >Środa<br></th> <th >Czwartek<br></th> <th >Piątek<br></th>
+<tr onMouseOver="javascript:highlightTableRowVersionA(this, '#dbdbdb');" class="row1"> <td><b>(0)</b> ?-? </td> <td> </td> <td> </td> <td> </td> <td> </td> <td> </td> </tr>
+<tr class="row2"> <td><b>(1)</b>08:00-08:45</td> <td> Edukacja wczesnoszkolna </td> <td> Edukacja wczesnoszkolna </td> <td> Język angielski </td> <td> Edukacja wczesnoszkolna </td> <td> Religia </td> </tr>
+<tr class="row1"> <td><b>(2)</b>08:55-09:40</td> <td> Wychowanie fizyczne </td> <td> Język niemiecki </td> <td> </td> <td> Edukacja wczesnoszkolna </td> <td> Informatyka </td> </tr>
+<tr class="row2"> <td><b>(8)</b>14:30-15:15</td> <td> </td> <td> </td> <td> </td> <td> </td> <td> </td> </tr>
+</table></td></tr></table>"""
+
+SUBSTITUTIONS = _HEAD.format("Lista zastępstw") + """<center>
+<table style="width:100%"; border="0" onMouseOut="javascript:highlightTableRowVersionA(0);"> <tr> <th>Lp</th> <th>Data zastępstwa</th> <th>Przedmiot</th> <th>Lekcja</th> <th>Zastępstwo za</th> <th>Zastępujący</th> <th>Data dodania</th> <th>Klasa/grupa</th> </tr>
+<tr class="row1"> <td><center>1</center></td> <td>2026-11-09</td> <td >Wychowanie fizyczne</td> <td >2</td> <td>Nowak Anna</td> <td>Wiśniewska Ola</td> <td>2026-11-08 11:13:28</td> <td>SP 3A </td>
+<tr class="row2"> <td><center>2</center></td> <td>2026-10-09</td> <td >Język angielski</td> <td >3</td> <td>Zielińska Ewa</td> <td>Kowal Jan</td> <td>2026-10-29 10:13:52</td> <td>SP 3A </td>
+<tr class="row1"> <td><center>3</center></td> <td>2026-10-09</td> <td >Język angielski</td> <td >3</td> <td>Zielińska Ewa</td> <td>Mazur Piotr</td> <td>2026-10-08 07:17:52</td> <td>SP 3A </td>
+</table><br></center></td></tr></table>"""
+
+SCHOOL_CAL = _HEAD.format("Kalendarz roku szkolnego") + """<br>
+<table style="width:95%"; border="0"> <th>Lp</th> <th>Wydarzenie</th> <th>Data</th> <th>Wolne</th>
+<tr class="row1"> <td><center>1</center></td> <td><b><font style="font-size: 14px;">Rok szkolny</font></b></td> <td>2026-09-01 - 2027-06-26</td> <td><center></td> </tr>
+<tr class="row2"> <td><center>2</center></td> <td>Dzień Niepodległości</td> <td>2026-11-11 - 2026-11-11</td> <td><center><b><font color="green">TAK</font></b></td> </tr>
+<tr class="row1"> <td><center>3</center></td> <td>Dzień wolny od zajęć edukacyjnych</td> <td>2026-11-12 - 2026-11-13</td> <td><center><b><font color="green">TAK</font></b></td> </tr>
+<tr class="row2"> <td><center>4</center></td> <td>Egzamin ósmoklasisty</td> <td>2027-05-11 - 2027-05-13</td> <td><center><b><font color="red">NIE</font></b></td> </tr>
+</table></td></tr></table>"""
+
+REMARKS = _HEAD.format("Uwagi półrocze 1") + """<br><center><br><table style='width: 100%;' border="1"> <tr> <td valign="top" style="text-align: justify;">
+<font style="font-size: 14px;" color="green" title="Uwaga pozytywna.<br>Wystawiona: <b>2026-10-30 13:18:08</b> przez <b>Anna Nowak</b>" style="text-align: justify;" class="vtip" > <b>Pochwała za przebranie. </b> </font> <hr>
+<font style="font-size: 14px;" color="red" title="Uwaga negatywna.<br>Wystawiona: <b>2026-10-05 11:08:33</b> przez <b>Jan Kowal</b>" class="vtip" > <b>Rozmowy na lekcji. </b> </font>
+</td> </table></center></td></tr></table>"""
+
+HOMEWORK_EMPTY = _HEAD.format("Lista zadań domowych") + """<center>
+<table style="width:100%"; border="0"> <th>Lp</th> <th>Przedmiot</th> <th>Nauczyciel</th> <th>Temat</th> <th>Data zadania</th> <th>Termin wykonania</th> <th>Treść</th>
+<tr> <td colspan="7"><center><b>Legenda:</b>&nbsp;<span style="background-color: #ff7f00;">&nbsp;&nbsp;</span> - zadanie do wykonania na jutro</td> </tr>
+</table><br></center></td></tr></table>"""
+
+HOMEWORK = HOMEWORK_EMPTY.replace(
+    "</table><br></center>",
+    """<tr class="row1"><td>1</td><td>Język angielski</td><td>Ewa Zielińska</td><td>Unit 2</td><td>2026-11-06</td><td>2026-11-10</td><td>Ćw. 3 i 4, str. 21</td></tr>
+</table><br></center>""",
+)

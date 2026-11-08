@@ -49,11 +49,37 @@
       },
       "upcoming_events": {
         "name": "Upcoming events"
+      },
+      "lessons_today": {
+        "name": "Lessons today"
+      },
+      "lessons_tomorrow": {
+        "name": "Lessons tomorrow"
+      },
+      "week_plan": {
+        "name": "Week plan"
+      },
+      "next_day_off": {
+        "name": "Next day off"
+      },
+      "substitutions": {
+        "name": "Substitutions"
+      },
+      "remarks": {
+        "name": "Remarks"
+      },
+      "homework": {
+        "name": "Homework"
       }
     },
     "button": {
       "mark_messages_read": {
         "name": "Mark messages as read"
+      }
+    },
+    "calendar": {
+      "lessons": {
+        "name": "Lessons"
       }
     }
   },
@@ -69,6 +95,10 @@
     "unknown_message_icon": {
       "title": "Mantica diary: unknown message state",
       "description": "Read/unread state not recognised (unknown icon): {details}\n\nThese messages are not counted as unread. parser.py needs the icon added."
+    },
+    "extra_layout_changed": {
+      "title": "Mantica: part of the diary could not be read",
+      "description": "Grades and messages work, but these pages could not be read: {details}\n\nTheir entities are unavailable. The page layout probably changed - extras.py needs a fix."
     }
   },
   "options": {
