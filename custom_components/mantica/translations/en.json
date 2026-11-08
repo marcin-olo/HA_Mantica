@@ -70,6 +70,9 @@
       },
       "homework": {
         "name": "Homework"
+      },
+      "messages": {
+        "name": "Messages"
       }
     },
     "button": {
@@ -115,6 +118,18 @@
     },
     "error": {
       "bad_hours": "The end hour must be later than the start hour."
+    }
+  },
+  "services": {
+    "mark_message_read": {
+      "name": "Mark message as read",
+      "description": "Clears the \"new\" flag of a message in HA. Without an ID: all messages.",
+      "fields": {
+        "message_id": {
+          "name": "Message ID",
+          "description": "ID from the messages attribute of the Messages sensor. Empty = all."
+        }
+      }
     }
   }
 }

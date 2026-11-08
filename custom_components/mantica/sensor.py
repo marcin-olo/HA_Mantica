@@ -40,12 +40,14 @@ def _pick(item: dict[str, Any], keys: tuple[str, ...], n: int = MAX_TEXT) -> dic
 EVENT_KEYS = ("name", "date", "days_left", "teacher", "description", "is_test")
 GRADE_KEYS = ("subject", "value", "date", "description", "weight", "teacher")
 MESSAGE_KEYS = ("id", "subject", "sender", "received", "has_attachment", "new")
-# Whole inbox page fits: 10 bodies x 1500 chars stays well under 16 KB.
-MAX_BODY = 1500
+# Bodies longer than this are cut (the full text stays in the diary).
+MAX_BODY = 3000
 
 
-def _message(m: dict[str, Any], n: int = MAX_TEXT) -> dict[str, Any]:
-    return {**_pick(m, MESSAGE_KEYS, n), "body": _short(m.get("body"), MAX_BODY)}
+def _message(m: dict[str, Any], n: int = MAX_TEXT, body: int = 1500) -> dict[str, Any]:
+    # Recorded sensors keep bodies at 1500 chars (10 x 1500 stays under the
+    # recorder's 16 KB); the unrecorded inbox sensor allows MAX_BODY.
+    return {**_pick(m, MESSAGE_KEYS, n), "body": _short(m.get("body"), body)}
 
 
 def _event_attrs(e: dict[str, Any] | None) -> dict[str, Any]:
@@ -113,6 +115,17 @@ SENSORS: tuple[ManticaDescription, ...] = (
             "messages": [_message(m, 120) for m in d["new_messages"][:10]],
             "unread_on_portal": len(d["unread"]),
             "unrecognised_icons": len(d["unknown_read_state"]),
+        },
+    ),
+    ManticaDescription(
+        key="messages",
+        translation_key="messages",
+        icon="mdi:email-multiple",
+        # Whole first inbox page with bodies, for the messages card.
+        value_fn=lambda d: len(d["new_messages"]),
+        attrs_fn=lambda d: {
+            "total": len(d["messages"]),
+            "messages": [_message(m, 250, MAX_BODY) for m in d["messages"]],
         },
     ),
     ManticaDescription(
@@ -255,7 +268,10 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ManticaConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     coordinator = entry.runtime_data
-    entities: list[SensorEntity] = [ManticaSensor(coordinator, entry, d) for d in SENSORS]
+    entities: list[SensorEntity] = [
+        (ManticaInboxSensor if d.key == "messages" else ManticaSensor)(coordinator, entry, d)
+        for d in SENSORS
+    ]
     # One average sensor per subject present at setup time (reload to add new ones).
     entities += [
         ManticaAverageSensor(coordinator, entry, s["subject"])
@@ -286,6 +302,11 @@ class ManticaSensor(CoordinatorEntity[ManticaCoordinator], SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return self.entity_description.attrs_fn(self.coordinator.data)
+
+
+class ManticaInboxSensor(ManticaSensor):
+    # Up to 10 full bodies: too big for the recorder, and history of them is useless.
+    _unrecorded_attributes = frozenset({"messages", "total"})
 
 
 class ManticaAverageSensor(CoordinatorEntity[ManticaCoordinator], SensorEntity):

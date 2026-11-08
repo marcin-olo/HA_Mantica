@@ -27,6 +27,7 @@ Mantica nie ma API, więc to scraping HTML: integracja loguje się jak przegląd
 ## Encje
 | Encja | Stan | Atrybuty |
 |---|---|---|
+| Wiadomości | liczba nowych (wg HA) | `messages`: cała pierwsza strona skrzynki z treścią (dla karty), `total` |
 | Nieprzeczytane wiadomości | liczba nowych (wg HA) | lista z treścią (`body`), `unread_on_portal`, `unrecognised_icons` |
 | Ostatnia wiadomość | temat | nadawca, data, załącznik, `new`, `body` |
 | Oznacz wiadomości jako przeczytane (przycisk) | – | zeruje licznik nowych wiadomości w HA |
@@ -64,6 +65,20 @@ praca klasowa, egzamin, dyktando, quiz, test (`TEST_KEYWORDS` w `parser.py`).
 
 Pierwszy odczyt po instalacji tylko zapamiętuje istniejące pozycje, bez powiadomień.
 
+### Karta wiadomości
+Integracja dostarcza własną kartę (bez osobnej instalacji): Dashboard → Edytuj → Dodaj kartę →
+„Mantica - wiadomości”, albo ręcznie:
+
+```yaml
+type: custom:mantica-messages-card
+entity: sensor.<twoj_prefiks>_messages
+title: "Wiadomości"
+```
+
+Kliknięcie wiadomości rozwija jej treść i oznacza ją jako przeczytaną (usługa
+`mantica.mark_message_read` z `message_id`; bez ID - wszystkie). Inne gotowe karty
+(oceny, plan tygodnia) są w katalogu `examples/`.
+
 ### Gotowe powiadomienia (blueprint)
 [`blueprints/automation/mantica/powiadomienia.yaml`](blueprints/automation/mantica/powiadomienia.yaml):
 Ustawienia → Automatyzacje i sceny → Blueprinty → **Importuj blueprint** → wklej adres tego pliku
@@ -89,7 +104,7 @@ niezależnych znacznikach.
 - Semestr dobierany z daty: wrzesień–styczeń = 1, luty–sierpień = 2.
 - Średnie per przedmiot powstają przy starcie; nowy przedmiot wymaga przeładowania integracji.
 - Plan lekcji i kalendarz roku szkolnego są czytane raz dziennie, zastępstwa, uwagi i zadania przy każdym odczycie (5 stron więcej niż w 0.4). Plan klasy w Mantice nie zawiera sal ani nauczycieli.
-- Wiadomości: pierwsza strona skrzynki (10 najnowszych). Treść nowych wiadomości jest pobierana (max 5 na odświeżenie), co oznacza je jako przeczytane na portalu - dlatego „nowe” liczy sama integracja, do wciśnięcia przycisku „Oznacz wiadomości jako przeczytane”.
+- Wiadomości: pierwsza strona skrzynki (10 najnowszych). Treść wiadomości jest pobierana raz dla każdej wiadomości z pierwszej strony, najpierw nowych (max 5 na odświeżenie), co oznacza je jako przeczytane na portalu - dlatego „nowe” liczy sama integracja, do wciśnięcia przycisku „Oznacz wiadomości jako przeczytane”.
 - Ikona nieprzeczytanej wiadomości nie była widoczna przy budowie integracji. Rozpoznawane są typowe
   nazwy, a nieznaną zgłosi komunikat w Naprawach.
 

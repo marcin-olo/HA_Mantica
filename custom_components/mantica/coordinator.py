@@ -200,9 +200,12 @@ class ManticaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._dismissed &= inbox
         self._bodies = {k: v for k, v in self._bodies.items() if k in inbox}
 
+        # Bodies of new messages first, then the rest of the inbox page (shown
+        # in the messages card); each body is read once and kept.
         fetched = 0
-        for m in messages:  # newest first
-            if m["id"] not in self._new_msgs or m["id"] in self._bodies:
+        order = sorted(messages, key=lambda m: m["id"] not in self._new_msgs)  # stable: newest first
+        for m in order:
+            if m["id"] in self._bodies:
                 continue
             if fetched >= MAX_BODY_FETCHES:
                 break

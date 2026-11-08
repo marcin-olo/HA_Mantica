@@ -16,7 +16,7 @@ TIMEOUT = aiohttp.ClientTimeout(total=30)
 CALENDAR_MONTHS = 3  # current + next two
 # Identify honestly, so the portal admins can tell what this traffic is.
 USER_AGENT = (
-    "HomeAssistant-Mantica/0.5 "
+    "HomeAssistant-Mantica/0.6 "
     "(unofficial Home Assistant integration; parent account, read-only; "
     "+https://github.com/marcin-olo/HA_Mantica)"
 )

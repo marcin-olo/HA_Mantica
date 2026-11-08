@@ -68,3 +68,14 @@ def test_poll_schedule_active_hours():
     assert delay(1) == timedelta(hours=5)  # after midnight -> 06:00 today
     assert delay(5, 30) == timedelta(minutes=60)  # 06:30 is inside the window
     assert delay(3, interval=15, start=0, end=24) == timedelta(minutes=15)  # always on
+
+
+def test_version_matches_manifest():
+    import json
+    import pathlib
+    import re
+
+    comp = pathlib.Path(__file__).resolve().parents[1] / "custom_components" / "mantica"
+    manifest = json.loads((comp / "manifest.json").read_text())["version"]
+    const = re.search(r'VERSION = "([^"]+)"', (comp / "const.py").read_text()).group(1)
+    assert manifest == const, (manifest, const)

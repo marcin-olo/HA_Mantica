@@ -1,0 +1,6 @@
+mark_message_read:
+  fields:
+    message_id:
+      example: "30784"
+      selector:
+        text:

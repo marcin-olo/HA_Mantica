@@ -1,43 +1,9 @@
-# Karta "Wiadomości" dla integracji Mantica (tylko wbudowane karty HA).
-# Dashboard -> Edytuj -> Dodaj kartę (lub "+" w nowej sekcji) -> Ręcznie -> wklej.
-# Jeśli Twoje encje mają inne nazwy, podmień prefiks
-# "integracje_dziennik_mantica" na swój.
-type: vertical-stack
-cards:
-  - type: markdown
-    title: "Wiadomości: Ewa"
-    content: |-
-      {%- set u = 'sensor.integracje_dziennik_mantica_unread_messages' -%}
-      {%- set l = 'sensor.integracje_dziennik_mantica_latest_message' -%}
-      {%- set new = state_attr(u, 'messages') or [] -%}
-      {% if new %}### 📬 Nowe wiadomości: {{ new | count }}
-      {% for m in new %}
-
-      **{{ m.subject }}**<br>
-      <small>{{ m.sender }} · {{ (m.received or '')[:16] }}{{ ' · 📎' if m.has_attachment }}</small>
-
-      {{ (m.body or '_(brak treści)_') | replace('\n', '<br>') }}
-
-      ---
-      {% endfor %}
-      {% else %}### ✉️ Brak nowych wiadomości
-      {% if states(l) not in ['unknown', 'unavailable'] %}
-
-      Ostatnia: **{{ states(l) }}**<br>
-      <small>{{ state_attr(l, 'sender') }} · {{ (state_attr(l, 'received') or '')[:16] }}</small>
-      {% endif %}{% endif %}
-  - type: conditional
-    conditions:
-      - condition: numeric_state
-        entity: sensor.integracje_dziennik_mantica_unread_messages
-        above: 0
-    card:
-      type: button
-      name: Oznacz jako przeczytane
-      icon: mdi:email-check
-      show_state: false
-      tap_action:
-        action: perform-action
-        perform_action: button.press
-        target:
-          entity_id: button.integracje_dziennik_mantica_mark_messages_as_read
+# Karta "Wiadomości" (od 0.6.0 wbudowana w integrację - nic nie trzeba instalować).
+# Dashboard -> Edytuj -> Dodaj kartę -> wyszukaj "Mantica - wiadomości"
+# albo "Ręcznie" i wklej poniższe.
+# Kliknięcie wiadomości pokazuje jej treść i oznacza ją jako przeczytaną;
+# ikona koperty w nagłówku (gdy są nowe) oznacza wszystkie.
+type: custom:mantica-messages-card
+entity: sensor.integracje_dziennik_mantica_messages
+title: "Wiadomości: Ewa"
+max: 10

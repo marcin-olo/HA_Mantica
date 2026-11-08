@@ -1,5 +1,6 @@
 """Constants for the Mantica school diary integration."""
 DOMAIN = "mantica"
+VERSION = "0.6.0"  # keep equal to manifest.json (checked by tests)
 
 # Options (Konfiguruj): how often and in which hours the portal is read.
 CONF_SCAN_MINUTES = "scan_minutes"

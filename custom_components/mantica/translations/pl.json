@@ -70,6 +70,9 @@
       },
       "homework": {
         "name": "Zadania domowe"
+      },
+      "messages": {
+        "name": "Wiadomości"
       }
     },
     "button": {
@@ -115,6 +118,18 @@
     },
     "error": {
       "bad_hours": "Godzina końca musi być późniejsza niż godzina początku."
+    }
+  },
+  "services": {
+    "mark_message_read": {
+      "name": "Oznacz wiadomość jako przeczytaną",
+      "description": "Zdejmuje oznaczenie „nowa” z wiadomości w HA (na portalu jest już przeczytana). Bez ID - wszystkie wiadomości.",
+      "fields": {
+        "message_id": {
+          "name": "ID wiadomości",
+          "description": "ID z atrybutu messages sensora Wiadomości. Puste = wszystkie."
+        }
+      }
     }
   }
 }
