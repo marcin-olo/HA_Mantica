@@ -1,9 +1,10 @@
 # Karta "Wiadomości" (od 0.6.0 wbudowana w integrację - nic nie trzeba instalować).
 # Dashboard -> Edytuj -> Dodaj kartę -> wyszukaj "Mantica - wiadomości"
 # albo "Ręcznie" i wklej poniższe.
-# Kliknięcie wiadomości pokazuje jej treść i oznacza ją jako przeczytaną;
+# Pokazuje 3 ostatnie wiadomości (max), nowe pogrubione. Kliknięcie otwiera
+# treść w okienku i oznacza wiadomość jako przeczytaną;
 # ikona koperty w nagłówku (gdy są nowe) oznacza wszystkie.
 type: custom:mantica-messages-card
 entity: sensor.integracje_dziennik_mantica_messages
 title: "Wiadomości: Ewa"
-max: 10
+max: 3

@@ -75,7 +75,8 @@ entity: sensor.<twoj_prefiks>_messages
 title: "Wiadomości"
 ```
 
-Kliknięcie wiadomości rozwija jej treść i oznacza ją jako przeczytaną (usługa
+Karta pokazuje `max` ostatnich wiadomości (domyślnie 3), nowe pogrubione. Kliknięcie otwiera treść
+w okienku i oznacza wiadomość jako przeczytaną (usługa
 `mantica.mark_message_read` z `message_id`; bez ID - wszystkie). Inne gotowe karty
 (oceny, plan tygodnia) są w katalogu `examples/`.
 
