@@ -5,7 +5,7 @@ blueprint:
     (z treścią) i nowym wpisie w terminarzu. Wymaga integracji „Mantica -
     dziennik szkolny”.
   domain: automation
-  source_url: https://github.com/OWNER/REPO/blob/main/blueprints/automation/mantica/powiadomienia.yaml
+  source_url: https://github.com/marcin-olo/HA_Mantica/blob/main/blueprints/automation/mantica/powiadomienia.yaml
   input:
     notify_device:
       name: Urządzenie

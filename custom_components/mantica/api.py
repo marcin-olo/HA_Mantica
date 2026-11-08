@@ -17,7 +17,8 @@ CALENDAR_MONTHS = 3  # current + next two
 # Identify honestly, so the portal admins can tell what this traffic is.
 USER_AGENT = (
     "HomeAssistant-Mantica/0.4 "
-    "(unofficial Home Assistant integration; parent account, read-only)"
+    "(unofficial Home Assistant integration; parent account, read-only; "
+    "+https://github.com/marcin-olo/HA_Mantica)"
 )
 
 
