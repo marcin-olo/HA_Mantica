@@ -12,7 +12,7 @@
 const CHEVRON = "M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z";
 
 const STYLE = `
-  ha-card { padding: 20px 16px 12px; }
+  ha-card { padding: 20px 16px 12px; text-align: start; }
   .head { display: flex; align-items: center; gap: 8px; padding: 0 4px 12px;
           border-bottom: 3px solid var(--primary-color); margin-bottom: 14px; }
   .title { flex: 1; font-size: 1.45em; font-weight: 500; color: var(--primary-text-color); }
